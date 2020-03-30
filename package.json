@@ -8,5 +8,8 @@
   },
   "keywords": [],
   "author": "andrew@burgess.io",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "koa": "^2.11.0"
+  }
 }
