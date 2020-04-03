@@ -1,2 +1,8 @@
 node_modules
 *.swp
+*.code-workspace
+
+# Terraform
+infrastructure/.terraform
+infrastructure/*.tfvars
+infrastructure/*.tfstate*
