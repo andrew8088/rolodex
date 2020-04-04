@@ -1,12 +1,8 @@
 variable "region" {}
+variable "aws_account_id" {}
 variable "environment" {}
 variable "task_definition_container_image" {}
 variable "task_definition_execution_role_arn" {}
-
-provider "aws" {
-  profile = "default"
-  region  = var.region
-}
 
 locals {
   project_name     = "rolodex"
@@ -14,13 +10,19 @@ locals {
   launch_type      = "FARGATE"
 }
 
+provider "aws" {
+  profile = local.project_name
+  region  = var.region
+}
+
 // ============== VPC ==================
 resource "aws_vpc" "this" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
-    Name    = "${local.application_name}-vpc"
-    project = local.project_name
+    Name        = "${local.application_name}-vpc"
+    environment = var.environment
+    project     = local.project_name
   }
 }
 
@@ -31,8 +33,35 @@ resource "aws_subnet" "this" {
   availability_zone       = "ca-central-1a"
 
   tags = {
-    Name    = "${local.application_name}-subnet"
-    project = local.project_name
+    Name        = "${local.application_name}-subnet-1"
+    environment = var.environment
+    project     = local.project_name
+  }
+}
+
+resource "aws_subnet" "this-2" {
+  vpc_id                  = aws_vpc.this.id
+  cidr_block              = "10.0.1.0/24"
+  map_public_ip_on_launch = "false"
+  availability_zone       = "ca-central-1b"
+
+  tags = {
+    Name        = "${local.application_name}-subnet-2"
+    environment = var.environment
+    project     = local.project_name
+  }
+}
+
+resource "aws_subnet" "this-3" {
+  vpc_id                  = aws_vpc.this.id
+  cidr_block              = "10.0.2.0/24"
+  map_public_ip_on_launch = "false"
+  availability_zone       = "ca-central-1d"
+
+  tags = {
+    Name        = "${local.application_name}-subnet-3"
+    environment = var.environment
+    project     = local.project_name
   }
 }
 
@@ -51,7 +80,8 @@ resource "aws_security_group" "this" {
   }
 
   tags = {
-    project = local.project_name
+    environment = var.environment
+    project     = local.project_name
   }
 }
 
@@ -93,6 +123,75 @@ resource "aws_security_group_rule" "this-2" {
   to_port           = 0
 }
 
+// ============== ALB ==================
+
+resource "aws_s3_bucket" "lb_logs" {
+  bucket = "${local.application_name}-alb-logs"
+
+  tags = {
+    environment = var.environment
+    project     = local.project_name
+  }
+}
+
+resource "aws_s3_bucket_policy" "lb_logs_policy" {
+  bucket = aws_s3_bucket.lb_logs.id
+
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::985666609251:root"
+      },
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::${aws_s3_bucket.lb_logs.bucket}/${local.application_name}-alb/*"
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_lb" "this" {
+  name               = "${local.application_name}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.this.id]
+  subnets            = [aws_subnet.this.id, aws_subnet.this-2.id, aws_subnet.this-3.id]
+
+  access_logs {
+    bucket  = aws_s3_bucket.lb_logs.id
+    prefix  = "${local.application_name}-alb"
+    enabled = true
+  }
+
+  tags = {
+    environment = var.environment
+    project     = local.project_name
+  }
+}
+
+resource "aws_lb_target_group" "this" {
+  name        = "${local.application_name}-alb-tg"
+  port        = 80
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = aws_vpc.this.id
+}
+
+resource "aws_lb_listener" "this" {
+  load_balancer_arn = aws_lb.this.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.this.arn
+  }
+}
+
 // ============== CLOUDWATCH ===========
 
 resource "aws_cloudwatch_log_group" "this" {
@@ -100,7 +199,7 @@ resource "aws_cloudwatch_log_group" "this" {
 
   tags = {
     environment = var.environment
-    project = local.project_name 
+    project     = local.project_name
   }
 
 }
@@ -110,7 +209,8 @@ resource "aws_ecs_cluster" "this" {
   name = local.application_name
 
   tags = {
-    project = local.project_name
+    environment = var.environment
+    project     = local.project_name
   }
 }
 
@@ -144,7 +244,8 @@ resource "aws_ecs_task_definition" "this" {
   container_definitions = module.rolodex_definition.json
 
   tags = {
-    project = local.project_name
+    environment = var.environment
+    project     = local.project_name
   }
 }
 
@@ -152,6 +253,7 @@ resource "aws_ecs_service" "this" {
   name        = "${local.application_name}-service"
   cluster     = aws_ecs_cluster.this.id
   launch_type = local.launch_type
+  depends_on  = [aws_lb_listener.this]
 
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 0
@@ -161,11 +263,18 @@ resource "aws_ecs_service" "this" {
   network_configuration {
     assign_public_ip = true
     security_groups  = [aws_security_group.this.id]
-    subnets          = [aws_subnet.this.id]
+    subnets          = [aws_subnet.this.id, aws_subnet.this-2.id]
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.this.arn
+    container_name   = local.project_name
+    container_port   = 80
   }
 
   tags = {
-    project = local.project_name
+    environment = var.environment
+    project     = local.project_name
   }
 
 }
