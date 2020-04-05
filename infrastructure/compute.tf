@@ -55,6 +55,11 @@ resource "aws_ecs_task_definition" "this" {
   }
 }
 
+data "aws_ecs_task_definition" "latest" {
+  task_definition = aws_ecs_task_definition.this.family
+}
+
+
 resource "aws_ecs_service" "this" {
   name        = "${local.application_name}-service"
   cluster     = aws_ecs_cluster.this.id
@@ -64,12 +69,12 @@ resource "aws_ecs_service" "this" {
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 0
   desired_count                      = 1
-  task_definition                    = "${aws_ecs_task_definition.this.family}:${aws_ecs_task_definition.this.revision}"
+  task_definition                    = "${aws_ecs_task_definition.this.family}:${max("${aws_ecs_task_definition.this.revision}", "${data.aws_ecs_task_definition.latest.revision}")}"
 
   network_configuration {
     assign_public_ip = true
     security_groups  = [aws_security_group.this.id]
-    subnets          = [aws_subnet.this.id, aws_subnet.this-2.id]
+    subnets          = [aws_subnet.this.id, aws_subnet.this-2.id, aws_subnet.this-3.id]
   }
 
   load_balancer {
