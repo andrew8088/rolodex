@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "build-image": "docker build -t rolodex:latest .",
     "start": "docker run -p 8080:80 --name rolodex-dev -d rolodex:latest",
     "stop": "docker stop rolodex-dev && docker rm rolodex-dev",
@@ -19,9 +19,13 @@
     "koa-router": "^8.0.8"
   },
   "devDependencies": {
+    "@types/jest": "^25.2.1",
     "@types/koa": "^2.11.3",
     "@types/koa-router": "^7.4.0",
     "@types/koa__cors": "^3.0.1",
+    "@types/node": "^13.11.1",
+    "jest": "^25.3.0",
+    "ts-jest": "^25.3.1",
     "typescript": "^3.8.3"
   }
 }
