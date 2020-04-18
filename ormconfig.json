@@ -1,0 +1,15 @@
+{
+  "type": "postgres",
+  "synchronize": false,
+  "host": "localhost",
+  "port": 6543,
+  "username": "rolodex_local",
+  "password": "rolodex_local",
+  "database": "rolodex_local",
+  "logging": true,
+  "migrations": ["src/db/migrations/*.ts"],
+  "cli": {
+    "entitiesDir": "src/db/entities",
+    "migrationsDir": "src/db/migrations"
+  }
+}

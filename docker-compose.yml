@@ -1,0 +1,23 @@
+version: "2.0"
+
+services:
+  rolodex:
+    build: .
+    ports:
+      - "8088:8088"
+    env_file: ./env/local.env
+    environment:
+      DB_HOST: db
+      DB_NAME: rolodex_local
+      DB_USER: rolodex_local
+      DB_PASSWORD: rolodex_local
+    links:
+      - db
+  db:
+    image: postgres:12.2
+    ports:
+      - "6543:5432"
+    environment:
+      POSTGRES_PASSWORD: rolodex_local
+      POSTGRES_USER: rolodex_local
+      POSTGRES_DB: rolodex_local

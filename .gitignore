@@ -3,6 +3,9 @@ node_modules
 *.swp
 *.code-workspace
 
+# Local Configs
+env/local.env
+
 # Terraform
 infrastructure/.terraform
 infrastructure/*.tfvars

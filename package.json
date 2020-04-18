@@ -8,7 +8,8 @@
     "build-image": "docker build -t rolodex:latest .",
     "start": "docker run -p 8080:80 --name rolodex-dev -d rolodex:latest",
     "stop": "docker stop rolodex-dev && docker rm rolodex-dev",
-    "dev": "npm run build-image && npm run start"
+    "dev": "npm run build-image && npm run start",
+    "migrate": "ts-node ./node_modules/typeorm/cli.js migration:run"
   },
   "keywords": [],
   "author": "andrew@burgess.io",
@@ -16,7 +17,10 @@
   "dependencies": {
     "@koa/cors": "2",
     "koa": "^2.11.0",
-    "koa-router": "^8.0.8"
+    "koa-router": "^8.0.8",
+    "pg": "^8.0.2",
+    "reflect-metadata": "^0.1.13",
+    "typeorm": "^0.2.24"
   },
   "devDependencies": {
     "@types/jest": "^25.2.1",
