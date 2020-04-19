@@ -2,6 +2,7 @@ dist
 node_modules
 *.swp
 *.code-workspace
+coverage
 
 # Local Configs
 env/local.env

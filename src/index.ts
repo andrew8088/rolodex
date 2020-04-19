@@ -1,4 +1,4 @@
-import * as Koa from "koa";
+import * as Koa from 'koa';
 import * as Router from 'koa-router';
 import * as cors from '@koa/cors';
 import { init } from './db';

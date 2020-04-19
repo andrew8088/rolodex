@@ -1,0 +1,7 @@
+./**/*.json
+.github/workflows/aws.yml
+docker-compose.yml
+infrastructure
+coverage
+dist
+yarn.lock
